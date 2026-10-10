@@ -49,14 +49,24 @@ machdep.bootmethod: UEFI
 ```
 As you can see in this case we are booting in UEFI Mode.
 
-### Step 2 : Checking our fstab to see if the BIOS/UEFI Boot partition is mounted during boot ?
+### Step 2 : Checking our fstab to see if the UEFI Boot partition is mounted during boot ?
 
 This can be done as following :
+
+In case we are dealing with a ZFS File System installation it will look something like this :
 ```
 admin@opnsense:~ # cat /etc/fstab
 # Device                Mountpoint      FStype  Options         Dump    Pass#
 /dev/gpt/efiboot0       /boot/efi       msdosfs rw              2       2
 /dev/ada0p3             none            swap    sw              0       0
+```
+In case we are dealing with an UFS File System installation it will look something like this :
+```
+admin@opnsense:~ # cat /etc/fstab
+# Device        Mountpoint      FStype  Options Dump    Pass#
+/dev/gpt/rootfs /               ufs     rw      1       1
+/dev/gpt/efifs  /boot/efi       msdosfs rw      2       2
+/dev/gpt/swapfs none            swap    sw      0       0
 ```
 You can see that :</br>
 - The UEFI Boot Partition is mounted at /boot/efi</br>
@@ -115,7 +125,7 @@ You can see that :</br>
 - The BIOS Boot Partition is the 2nd partition with the Partition Label bootfs</br>
 
 Please also note the difference between the ZFS and UFS examples when it comes to the Storage Device they were installed on :</br>
-- `ada0` means we are dealing with a HDD/SDD SATA device.</br>
+- `ada0` means we are dealing with a HDD/SSD SATA device.</br>
 - `nda0` means we are dealing with a NVMe SSD device.
 
 ### Step 4 : Check if all the UEFI Boot related files are there where we expect them to be ?
@@ -169,7 +179,7 @@ What you have done now is basically overwrite the old UEFI Bootloaders in /boot/
 In case you :
 - Boot in UEFI Mode
 - Have no plans to ever boot in BIOS Mode in the future.
-- Or are simply using a NVMe SSD which can not boot in BIOS Mode anyway !!
+- Or are simply using a NVMe SSD which can not boot in BIOS Mode anyway !!</br>
   Storage Device called nda0 in the `gpart` output : Remember ?!
 
 Then the only thing left for you is to REBOOT now and enjoy your new UEFI Bootloader 😬
@@ -185,13 +195,13 @@ No worries! Here we go!
 We now know that it's safe to update the BIOS Bootloader because :</br>
 - The command `sysctl machdep.bootmethod` showed we are booting in BIOS Mode.</br>
 Or you simply want to upgrade it too ofcourse!
-- The command `cat /etc/fstab` showed the UEFI Boot Partition is mounted in Read and Write Mode during boot.</br>
-- The command `gpart show` or `gpart show -l` showed the UEFI Boot Partition is big enough for the new files when we overwrite the old ones.</br>
-Some context : There have been too small partitions in the past!</br>
-These days this should not be an issue, but please keep in mind it can happen!</br>
-- The commands `ls -l /boot/efi/efi` and `ls -l /boot/efi/efi/boot` and `ls -l /boot/efi/efi/freebsd` showed the files we need to overwrite as there where we need and expect them to be!
+- The command `gpart show` or `gpart show -l` showed the BIOS Boot Partition is the 2nd partition with the Partition Label bootfs.</br>
+It also showed that in this case we will write the new BIOS Bootloader to the MBR of a device called ada0.
 
-Let's UPGRADE the UEFI Bootloader now :
+Let's UPGRADE the BIOS Bootloader now :
 ```
-
+gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 2 ada0
 ```
+Let's break down what the command has done :
+- bootcode
+  We are 
