@@ -202,6 +202,20 @@ Let's UPGRADE the BIOS Bootloader now :
 ```
 gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 2 ada0
 ```
-Let's break down what the command has done :
-- bootcode
-  We are 
+Let's break down what the command `gpart` has done :
+- `bootcode`
+  Write bootstrap code into a partition.
+- `-b` <i>bootcode</i>
+  Embed Bootstrap Code from a file into the partitioning scheme's metadata.
+- `/boot/pmbr`
+  This is the new MBR Bootloader File suitable for BIOS Boot Mode and holds the Bootstrap Code.
+- `-p` <i>partcode</i>
+  Write the Bootstrap Code from the MBR Bootloader File to a partition.
+- `/boot/gptboot`
+  The type of Bootstrap Code we are writing.
+- `-i`
+  The target partition we are writing the partcode to.
+- ada0
+  This is the Storage Device we are writing to.
+
+And that's it : You can REBOOT now and enjoy your new BIOS Bootloader 😬
