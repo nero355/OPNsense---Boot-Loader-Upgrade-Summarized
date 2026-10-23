@@ -31,7 +31,7 @@ Reason : You can't boot from NVMe when running in (Legacy) BIOS Mode !!</br>
 But let's check some stuff first later on before we do this, OK ?!
 - `gpart bootcode -b /boot/pmbr -p /boot/gptzfsboot -i 2 ada0`</br>
 This is basically for everyone out there using some sort of SATA storage and booting in Legacy BIOS Mode while using OpenZFS as the filesystem.</br>
-It installs the GPT ZFS Bootloader in the MBR of the SATA device.</br>
+It installs the GPT ZFS Bootloader in the Protective MBR of the SATA device.</br>
 For the UFS filesystem it would be :</br>
 - `gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 2 ada0`</br>
 But again : Let's check some stuff first before we do this, OK ?!
@@ -203,10 +203,17 @@ Or you simply want to upgrade it too ofcourse!
 It also showed that in this case we will write the new BIOS Boot Loader to the MBR of a device called ada0.
 
 Let's UPGRADE the BIOS Boot Loader now :
+
+For the UFS File System you can use :
 ```
 gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 2 ada0
 ```
-Let's break down what the command `gpart` has done :
+For the ZFS Fule System you can use :
+```
+gpart bootcode -b /boot/pmbr -p /boot/gptzfsboot -i 2 ada0
+```
+
+Let's break down what the command `gpart` is doing in the above examples :
 - `bootcode`</br>
 Embed bootstrap code into the partitioning scheme's metadata on the geom (using <b>-b</b> <i>bootcode</i>) or write bootstrap code into a </br>partition (using <b>-p</b> <i>partcode</i> and <b>-i</b> <i>index</i>).
 - `-b` <i>bootcode</i></br>
@@ -214,17 +221,31 @@ Embed bootstrap code from the file <i>bootcode</i> into the partitioning scheme'
 Not all partitioning schemes have embedded bootstrap code, so the <b>-b</b> <i>bootcode</i> option is scheme-specific in nature.</br>
 The <i>bootcode</i> file must match the partitioning scheme's requirements for file content and size.</br>
 - `/boot/pmbr`</br>
-This is the <i>bootcode</i> called Protected MBR Partition Table.</br>
+This is the <i>bootcode</i> called Protective MBR and is embedded into the first disk sector.</br>
 - `-p` <i>partcode</i></br>
 Write the bootstrap code from the file <i>partcode</i> into the geom partition specified by <b>-i</b> <i>index</i>.</br>
 The size of the file must be smaller than the size of the partition.</br>
 - `/boot/gptboot`</br>
-This is the <i>partcode</i> called GPT Boot.</br>
+This is the <i>partcode</i> called <i>gptboot</i> and is used to boot from UFS partitions.</br>
+- `/boot/gptzfsboot`</br>
+This is the <i>partcode</i> called <i>gptzfsboot</i> and is used to boot from ZFS partitions.</br>
 - `-i`</br>
 Specify the target partition for <b>-p</b> <i>partcode</i>.</br>
 - `ada0`</br>
-  This is the Storage Device we are writing to.</br>
+This is the Storage Device we are writing to.</br>
 
 And that's it : You can REBOOT now and enjoy your new BIOS Boot Loader 😬
 
-.
+
+
+## Sources & References
+
+- https://forum.opnsense.org/index.php?topic=48145.0
+- https://forum.opnsense.org/index.php?topic=52579.0
+- https://docs.freebsd.org/en/books/handbook/cutting-edge/#updating-bootcode
+- https://man.freebsd.org/cgi/man.cgi?gpart(8)
+- https://man.freebsd.org/cgi/man.cgi?gptboot(8)
+- https://man.freebsd.org/cgi/man.cgi?gptzfsboot(8)
+- https://man.freebsd.org/cgi/man.cgi?loader.efi(8)
+- The many helpful and useful instructions written by <i>Patrick M. Hausen</i> in the above topics : https://forum.opnsense.org/index.php?action=profile;u=25076</br>
+And everyone who asked for help and posted their outputs in those topics! 😉
