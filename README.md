@@ -1,8 +1,8 @@
-# OPNsense - Bootloader Upgrade Summarized
-OPNsense - Bootloader Upgrade Summarized into a simple HowTo based on the information found in various topics @ OPNsense Forum
+# OPNsense - Boot Loader Upgrade Summarized
+OPNsense Boot Loader Upgrade Summarized into a simple HowTo based on the information found in various topics @ OPNsense Forum.
 
-During the upgrade of OPNsense from version 26.1.x to 26.7.x there was a need to upgrade the FreeBSD Bootloader because of certains bugs of which the most important one was the fact that the early loading of AMD/Intel Microcode during the boot process caused stalls and various issues.</br>
-Later on the developers switched to late loading of the AMD/Intel Microcode and fix the issue.</br>
+During the upgrade of OPNsense from version 26.1.x to 26.7.x there was a need to upgrade the FreeBSD Boot Loader because of certains bugs of which the most important one was the fact that the early loading of AMD/Intel Microcode during the boot process caused stalls and various issues.</br>
+Later on the developers switched to late loading of the AMD/Intel Microcode and fixed the issue.</br>
 However seeing the amount of people who did not know what to do and how to do it I think it's good to have all the information from various OPNsense Forum topics about this in a summarized overview instead of having to search for them each time you need to apply the procedure.
 
 A list of commands you might/will need and what they do :
@@ -45,9 +45,16 @@ So far all the commands you have seen apply to the default OPNsense partitioning
 This can be done as following :
 ```
 admin@opnsense:~ # sysctl machdep.bootmethod
+```
+and will output either :
+```
 machdep.bootmethod: UEFI
 ```
-As you can see in this case we are booting in UEFI Mode.
+or
+```
+machdep.bootmethod: BIOS
+```
+Depending on the way your system boots.
 
 ### Step 2 : Checking our fstab to see if the UEFI Boot partition is mounted during boot ?
 
@@ -71,9 +78,9 @@ admin@opnsense:~ # cat /etc/fstab
 You can see that :</br>
 - The UEFI Boot Partition is mounted at /boot/efi</br>
 - That it's also mounted in <b>R</b>ead and <b>W</b>rite mode.</br>
-That means we don't have to mount it ourselves and we can write the new Bootloader to it!
+That means we don't have to mount it ourselves and we can write the new Boot Loader to it!
 
-### Step 3 : Check our partitioning layout and locate the BIOS and UEFI Bootloader Partitions.
+### Step 3 : Check our partitioning layout and locate the BIOS and UEFI Boot Loader Partitions.
 
 This can be done as following :
 ```
@@ -100,7 +107,7 @@ admin@opnsense:~ # gpart show -l
 You can see that :</br>
 - The UEFI Boot Partition is the 1st partition with the Partition Label efiboot0</br>
 - The BIOS Boot Partition is the 2nd partition with the Partition Label gptboot0</br>
-Please note that this is what the default OPNsense partitioning layout looks like when you choose OpenZFS as your File System.
+Please note that this is what the default OPNsense partitioning layout looks like when you choose ZFS as your File System.
 
 An example of the default OPNsense partitioning layout for UFS as the File System looks like this :</br>
 ```
@@ -136,14 +143,12 @@ admin@opnsense:~ # ls -l /boot/efi/efi
 ```
 Which will show :
 ```
-total 32
 drwxr-xr-x  1 root wheel 16384 Jul 14  2024 boot
 drwxr-xr-x  1 root wheel 16384 Jul 14  2024 freebsd
 ```
 Now let's check the contents of the <i>boot</i> directory :
 ```
 admin@opnsense:~ # ls -l /boot/efi/efi/boot
-total 896
 -rwxr-xr-x  1 root wheel 906240 Jul 14  2024 bootx64.efi
 ```
 We got what we need!
@@ -154,39 +159,38 @@ admin@opnsense:~ # ls -l /boot/efi/efi/freebsd
 ```
 Which will show :
 ```
-total 896
 -rwxr-xr-x  1 root wheel 906240 Jul 14  2024 loader.efi
 ```
 And we got the other one too!
 
-### Step 5 : Let's UPGRADE the UEFI Bootloader first!
+### Step 5 : Let's UPGRADE the UEFI Boot Loader first!
 
-We now know that it's safe to update the UEFI Bootloader because :</br>
+We now know that it's safe to update the UEFI Boot Loader because :</br>
 - The command `sysctl machdep.bootmethod` showed we are booting in UEFI Mode.</br>
 - The command `cat /etc/fstab` showed the UEFI Boot Partition is mounted in Read and Write Mode during boot.</br>
 - The command `gpart show` or `gpart show -l` showed the UEFI Boot Partition is big enough for the new files when we overwrite the old ones.</br>
 Some context : There have been too small partitions in the past!</br>
-These days this should not be an issue, but please keep in mind it can happen!</br>
-- The commands `ls -l /boot/efi/efi` and `ls -l /boot/efi/efi/boot` and `ls -l /boot/efi/efi/freebsd` showed the files we need to overwrite as there where we need and expect them to be!
+These days this should not be an issue, but please keep in mind it can happen when dealing with very old installs!</br>
+- The commands `ls -l /boot/efi/efi/boot` and `ls -l /boot/efi/efi/freebsd` showed the files we need to overwrite are there where we need and expect them to be!
 
-Let's UPGRADE the UEFI Bootloader now :
+Let's UPGRADE the UEFI Boot Loader now :
 ```
 admin@opnsense:~ # cp /boot/loader.efi /boot/efi/efi/boot/bootx64.efi
 admin@opnsense:~ # cp /boot/loader.efi /boot/efi/efi/freebsd/loader.efi
 ```
-What you have done now is basically overwrite the old UEFI Bootloaders in /boot/efi/efi/ with the new one that's always supplied by a new OPNsense/FreeBSD version in the /boot directory.
+What you have done now is basically overwrite the old UEFI Boot Loaders in /boot/efi/efi/ with the new one that's always supplied by a new OPNsense/FreeBSD version in the /boot directory.
 
 In case you :
 - Boot in UEFI Mode
 - Have no plans to ever boot in BIOS Mode in the future.
 - Or are simply using a NVMe SSD which can not boot in BIOS Mode anyway !!</br>
-  Storage Device called nda0 in the `gpart` output : Remember ?!
+  (Storage Device called nda0 in the `gpart` output : Remember ?!)
 
-Then the only thing left for you is to REBOOT now and enjoy your new UEFI Bootloader 😬
+Then the only thing left for you is to REBOOT now and enjoy your new UEFI Boot Loader 😬
 
 If not... well... keep reading!
 
-### Step 6 : Let's UPGRADE the BIOS Bootloader too!
+### Step 6 : Let's UPGRADE the BIOS Boot Loader too!
 
 So... you want to keep BIOS Boot Mode functionality too or you are simply using it right now and have no other choice BUT upgrading it too ?
 
@@ -196,26 +200,31 @@ We now know that it's safe to update the BIOS Bootloader because :</br>
 - The command `sysctl machdep.bootmethod` showed we are booting in BIOS Mode.</br>
 Or you simply want to upgrade it too ofcourse!
 - The command `gpart show` or `gpart show -l` showed the BIOS Boot Partition is the 2nd partition with the Partition Label bootfs.</br>
-It also showed that in this case we will write the new BIOS Bootloader to the MBR of a device called ada0.
+It also showed that in this case we will write the new BIOS Boot Loader to the MBR of a device called ada0.
 
-Let's UPGRADE the BIOS Bootloader now :
+Let's UPGRADE the BIOS Boot Loader now :
 ```
 gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 2 ada0
 ```
 Let's break down what the command `gpart` has done :
-- `bootcode`
-  Write bootstrap code into a partition.
-- `-b` <i>bootcode</i>
-  Embed Bootstrap Code from a file into the partitioning scheme's metadata.
-- `/boot/pmbr`
-  This is the new MBR Bootloader File suitable for BIOS Boot Mode and holds the Bootstrap Code.
-- `-p` <i>partcode</i>
-  Write the Bootstrap Code from the MBR Bootloader File to a partition.
-- `/boot/gptboot`
-  The type of Bootstrap Code we are writing.
-- `-i`
-  The target partition we are writing the partcode to.
-- ada0
-  This is the Storage Device we are writing to.
+- `bootcode`</br>
+Embed bootstrap code into the partitioning scheme's metadata on the geom (using <b>-b</b> <i>bootcode</i>) or write bootstrap code into a </br>partition (using <b>-p</b> <i>partcode</i> and <b>-i</b> <i>index</i>).
+- `-b` <i>bootcode</i></br>
+Embed bootstrap code from the file <i>bootcode</i> into the partitioning scheme's metadata for geom.</br>
+Not all partitioning schemes have embedded bootstrap code, so the <b>-b</b> <i>bootcode</i> option is scheme-specific in nature.</br>
+The <i>bootcode</i> file must match the partitioning scheme's requirements for file content and size.</br>
+- `/boot/pmbr`</br>
+This is the <i>bootcode</i> called Protected MBR Partition Table.</br>
+- `-p` <i>partcode</i></br>
+Write the bootstrap code from the file <i>partcode</i> into the geom partition specified by <b>-i</b> <i>index</i>.</br>
+The size of the file must be smaller than the size of the partition.</br>
+- `/boot/gptboot`</br>
+This is the <i>partcode</i> called GPT Boot.</br>
+- `-i`</br>
+Specify the target partition for <b>-p</b> <i>partcode</i>.</br>
+- `ada0`</br>
+  This is the Storage Device we are writing to.</br>
 
-And that's it : You can REBOOT now and enjoy your new BIOS Bootloader 😬
+And that's it : You can REBOOT now and enjoy your new BIOS Boot Loader 😬
+
+.
